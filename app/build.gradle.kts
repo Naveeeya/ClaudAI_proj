@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.runanywhere.startup_hackathon20"
+    namespace = "com.pitchslap.app"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.runanywhere.startup_hackathon20"
+        applicationId = "com.pitchslap.app"
         minSdk = 24
         targetSdk = 36
         versionCode = 1

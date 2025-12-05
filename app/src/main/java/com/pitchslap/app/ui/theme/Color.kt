@@ -1,4 +1,4 @@
-package com.runanywhere.startup_hackathon20.ui.theme
+package com.pitchslap.app.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

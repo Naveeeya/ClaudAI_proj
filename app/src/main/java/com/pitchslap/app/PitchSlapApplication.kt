@@ -1,4 +1,4 @@
-package com.runanywhere.startup_hackathon20
+package com.pitchslap.app
 
 import android.app.Application
 import android.util.Log
@@ -10,7 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
-class MyApplication : Application() {
+class PitchSlapApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
@@ -25,7 +25,7 @@ class MyApplication : Application() {
         try {
             // Step 1: Initialize SDK
             RunAnywhere.initialize(
-                context = this@MyApplication,
+                context = this@PitchSlapApplication,
                 apiKey = "dev",  // Any string works in dev mode
                 environment = SDKEnvironment.DEVELOPMENT
             )
@@ -39,10 +39,10 @@ class MyApplication : Application() {
             // Step 4: Scan for previously downloaded models
             RunAnywhere.scanForDownloadedModels()
 
-            Log.i("MyApp", "SDK initialized successfully")
+            Log.i("PitchSlap", "SDK initialized successfully")
 
         } catch (e: Exception) {
-            Log.e("MyApp", "SDK initialization failed: ${e.message}")
+            Log.e("PitchSlap", "SDK initialization failed: ${e.message}")
         }
     }
 

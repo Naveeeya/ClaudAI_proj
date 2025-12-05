@@ -1,131 +1,160 @@
-# RunAnywhere SDK - Simple Chat App
+# Pitch Slap - High-Performance Voice Application
 
-A simple Android chat application demonstrating the RunAnywhere SDK for on-device AI inference.
+A high-performance Android voice application built on the RunAnywhere SDK for on-device AI inference.
 
-## What This App Does
+## Project Status
 
-This is a minimal example showing how to:
+✅ **Phase 1: Architecture Refactoring** - Complete  
+✅ **Phase 2: Voice Activity Detection** - Complete  
+✅ **Phase 3: Interrupt Logic (Barge-In Detection)** - Complete  
+🚧 **Phase 4: AI Integration & Data Models** - Next
 
-1. Initialize the RunAnywhere SDK
-2. Download AI models (LLMs)
-3. Load models into memory
-4. Run text generation with streaming responses
+The project has been refactored from the RunAnywhere SDK chat example into a clean foundation for building the Pitch
+Slap voice application.
 
-## Features
+## Current Architecture
 
-- **Model Management**: Download and load AI models directly in the app
-- **Real-time Streaming**: See AI responses generate word-by-word
-- **Simple UI**: Clean Jetpack Compose interface
-- **On-Device AI**: All inference runs locally on your Android device
+### Package Structure (MVVM)
+
+```
+com.pitchslap.app/
+├── PitchSlapApplication.kt    # SDK initialization & model registration
+├── MainActivity.kt             # Main entry point with placeholder UI
+├── ui/                        # Jetpack Compose screens
+│   └── theme/                 # Material 3 theme configuration
+├── logic/                     # Voice Activity Detection & Interrupt logic
+│   ├── VoiceActivityDetection.kt
+│   └── InterruptLogic.kt
+└── data/                      # Structured output models
+    └── Models.kt
+```
+
+### Key Components
+
+- **Application ID**: `com.pitchslap.app`
+- **Project Name**: PitchSlap
+- **SDK**: RunAnywhere SDK v0.1.3-alpha with LlamaCpp module
+- **Architecture**: MVVM with Jetpack Compose
+
+## What's Working
+
+✅ RunAnywhere SDK initialization  
+✅ Model registration (Qwen 2.5 0.5B Instruct)  
+✅ Clean package structure for MVVM  
+✅ Voice Activity Detection (VAD) with real-time amplitude monitoring  
+✅ Interrupt Logic (Barge-In Detection) for turn-taking  
+✅ Test UI with visual feedback for VAD + Interrupts  
+✅ Comprehensive logging for debugging  
+✅ Event-driven architecture with Kotlin Flows
+
+## Next Steps
+
+The following components need to be implemented:
+
+1. ✅ ~~**Voice Activity Detection**~~ - Real-time audio input processing (DONE!)
+2. ✅ ~~**Interrupt Handling**~~ - Smart turn-taking logic (DONE!)
+3. **AI Integration** - Connect VAD + Interrupts to RunAnywhere SDK
+4. **Data Models** - Structured output models for pitch evaluation
+5. **Voice UI** - Custom voice interface for pitch practice
 
 ## Quick Start
 
-### 1. Build and Run
+### 1. Test Voice Activity Detection + Interrupt Logic
 
 ```bash
-./gradlew assembleDebug
-# Or open in Android Studio and click Run
+# Open in Android Studio and run on device
+# The app will show an Interrupt Test interface
 ```
 
-### 2. Download a Model
+**Testing the System:**
 
-1. Launch the app
-2. Tap "Models" in the top bar
-3. Choose a model (we recommend starting with "SmolLM2 360M Q8_0" - only 119 MB)
-4. Tap "Download" and wait for it to complete
+1. Grant microphone permission when prompted
+2. Tap "Start VAD" button
+3. Tap "🤖 Simulate AI Talking" - blue banner appears
+4. **Speak into microphone** - banner instantly disappears! (Barge-in detected)
+5. Check statistics for barge-in counter
 
-### 3. Load the Model
+**Logcat Filters:**
 
-1. Once downloaded, tap "Load" on the model
-2. Wait for "Model loaded! Ready to chat." message
+- `PitchSlap_VAD` - See real-time RMS amplitude values
+- `PitchSlap_Interrupt` - See barge-in detection events
 
-### 4. Start Chatting!
+**📖 See [VAD_TESTING_GUIDE.md](VAD_TESTING_GUIDE.md)
+and [INTERRUPT_LOGIC_TESTING_GUIDE.md](INTERRUPT_LOGIC_TESTING_GUIDE.md) for detailed instructions**
 
-1. Type a message in the text field
-2. Tap "Send"
-3. Watch the AI response generate in real-time
+### 2. Initialize the SDK
 
-## Available Models
+The app will automatically:
 
-The app comes pre-configured with two models:
-
-| Model | Size | Quality | Best For |
-|-------|------|---------|----------|
-| SmolLM2 360M Q8_0 | 119 MB | Basic | Testing, quick responses |
-| Qwen 2.5 0.5B Instruct Q6_K | 374 MB | Better | General conversations |
+- Initialize RunAnywhere SDK in development mode
+- Register the LlamaCpp service provider
+- Register available AI models
+- Scan for previously downloaded models
 
 ## Technical Details
 
-### SDK Components Used
+### SDK Components
 
 - **RunAnywhere Core SDK**: Component architecture and model management
 - **LlamaCpp Module**: Optimized llama.cpp inference engine with 7 ARM64 variants
 - **Kotlin Coroutines**: For async operations and streaming
 
-### Architecture
+### Dependencies
 
-```
-MyApplication (initialization)
-    ↓
-ChatViewModel (state management)
-    ↓
-ChatScreen (UI layer)
-```
-
-### Key Files
-
-- `MyApplication.kt` - SDK initialization and model registration
-- `ChatViewModel.kt` - Business logic and state management
-- `MainActivity.kt` - UI components and composables
+- Kotlin Coroutines for async/streaming
+- Ktor for networking
+- AndroidX WorkManager for background tasks
+- AndroidX Room for local storage
+- Jetpack Compose for UI
+- Material 3 design system
 
 ## Requirements
 
 - Android 7.0 (API 24) or higher
-- ~200 MB free storage (for smallest model)
+- ~500 MB free storage (for models)
 - Internet connection (for downloading models)
+- Microphone permission (to be added)
 
-## Troubleshooting
+## Development
 
-### Models not showing up
+### Adding Models
 
-- Wait a few seconds for SDK initialization
-- Tap "Refresh" in the Models section
-- Check logcat for initialization errors
+Edit `PitchSlapApplication.kt` → `registerModels()` to add new models from HuggingFace.
 
-### Download fails
+### Customizing UI
 
-- Check internet connection
-- Ensure sufficient storage space
-- Verify INTERNET permission in AndroidManifest.xml
+All UI code is in `MainActivity.kt` and the `ui/` package. The current placeholder will be replaced with a custom voice
+interface.
 
-### App crashes during generation
+### Implementing Voice Logic
 
-- Try the smaller model (SmolLM2 360M)
-- Close other apps to free memory
-- Check that `largeHeap="true"` is set in AndroidManifest.xml
+- `logic/VoiceActivityDetection.kt` - ✅ VAD implementation complete!
+- `logic/InterruptLogic.kt` - ✅ Interrupt logic complete!
 
-### Generation is slow
+**Voice Logic Features:**
 
-- This is normal for on-device inference
-- Smaller models run faster
-- Performance depends on device CPU
+**VAD (Voice Activity Detection):**
 
-## Next Steps
+- Real-time audio streaming at 16kHz
+- RMS amplitude calculation
+- Threshold-based speech detection (configurable)
+- 500ms silence timeout
+- StateFlow for reactive UI updates
 
-Want to customize this app? Try:
+**Interrupt Logic (Traffic Controller):**
 
-1. **Add more models** - Edit `MyApplication.kt` → `registerModels()`
-2. **Customize UI** - Edit `MainActivity.kt` compose functions
-3. **Add system prompts** - Modify message format in `ChatViewModel.kt`
-4. **Persist chat history** - Add Room database or DataStore
-5. **Add model parameters** - Explore temperature, top-k, top-p settings
+- Monitors user + AI speaking states
+- Detects barge-in events (user interrupts AI)
+- Immediate AI cutoff on interrupt
+- Event stream for reactive cancellation
+- Statistics tracking for analytics
 
 ## Resources
 
-- [Full Quick Start Guide](app/src/main/java/com/runanywhere/startup_hackathon20/QUICK_START_ANDROID.md)
 - [RunAnywhere SDK Repository](https://github.com/RunanywhereAI/runanywhere-sdks)
 - [SDK Documentation](https://github.com/RunanywhereAI/runanywhere-sdks/blob/main/CLAUDE.md)
+- [Complete SDK Guide](RUNANYWHERE_SDK_COMPLETE_GUIDE.md)
 
 ## License
 
-This example app follows the license of the RunAnywhere SDK.
+This application follows the license of the RunAnywhere SDK.
