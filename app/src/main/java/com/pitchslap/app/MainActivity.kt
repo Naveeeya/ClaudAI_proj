@@ -20,7 +20,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import com.pitchslap.app.ai.FeedbackGenerator
+import com.pitchslap.app.ai.WhisperService
 import com.pitchslap.app.audio.AudioRecorder
+import com.pitchslap.app.audio.TextToSpeechEngine
+import com.pitchslap.app.conversation.VoiceConversationManager
 import com.pitchslap.app.logic.InterruptLogic
 import com.pitchslap.app.logic.VoiceActivityDetection
 import com.pitchslap.app.ui.theme.PitchSlapTheme
@@ -44,6 +48,20 @@ class MainActivity : ComponentActivity() {
     private val vad = VoiceActivityDetection()
     private val interruptLogic = InterruptLogic(vad)
     private val audioRecorder = AudioRecorder()
+    private val whisperService by lazy { WhisperService(applicationContext) }
+    private val feedbackGenerator by lazy { FeedbackGenerator() }
+    private val tts by lazy { TextToSpeechEngine(applicationContext, interruptLogic) }
+    private val conversationManager by lazy {
+        VoiceConversationManager(
+            context = applicationContext,
+            vad = vad,
+            audioRecorder = audioRecorder,
+            whisperService = whisperService,
+            feedbackGenerator = feedbackGenerator,
+            tts = tts,
+            interruptLogic = interruptLogic
+        )
+    }
 
     // Permission launcher
     private val requestPermissionLauncher = registerForActivityResult(
@@ -77,6 +95,12 @@ class MainActivity : ComponentActivity() {
         val isVADActive by vad.isVADActive.collectAsState()
         val isRecording by audioRecorder.isRecording.collectAsState()
         val recordedDuration by audioRecorder.recordedDurationMs.collectAsState()
+
+        // Conversation Manager states
+        val conversationState by conversationManager.conversationState.collectAsState()
+        val currentFeedback by conversationManager.currentFeedback.collectAsState()
+        val conversationHistory by conversationManager.conversationHistory.collectAsState()
+        val currentTranscript by conversationManager.currentTranscript.collectAsState()
 
         // Listen for barge-in events
         val scope = rememberCoroutineScope()
@@ -498,6 +522,136 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
+                    // Conversation Manager Card
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Text(
+                                text = "💬 Conversation Manager",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "State:",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Text(
+                                    text = conversationState.name,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = when (conversationState) {
+                                        VoiceConversationManager.ConversationState.IDLE -> Color.Gray
+                                        VoiceConversationManager.ConversationState.LISTENING -> Color(0xFF2196F3)
+                                        VoiceConversationManager.ConversationState.RECORDING -> Color(0xFFE91E63)
+                                        VoiceConversationManager.ConversationState.PROCESSING -> Color(0xFFFF9800)
+                                        VoiceConversationManager.ConversationState.AI_SPEAKING -> Color(0xFF9C27B0)
+                                        VoiceConversationManager.ConversationState.ERROR -> Color(0xFFF44336)
+                                    }
+                                )
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "History:",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Text(
+                                    text = "${conversationHistory.size} turns",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            if (currentTranscript.isNotEmpty()) {
+                                Divider(modifier = Modifier.padding(vertical = 4.dp))
+                                Text(
+                                    text = "Latest Transcript:",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "\"$currentTranscript\"",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            }
+
+                            currentFeedback?.let { feedback ->
+                                Divider(modifier = Modifier.padding(vertical = 4.dp))
+                                Text(
+                                    text = "Latest Scores:",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        "🗣️ ${feedback.pronunciationScore}",
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                    Text("📝 ${feedback.grammarScore}", style = MaterialTheme.typography.bodySmall)
+                                    Text("💬 ${feedback.fluencyScore}", style = MaterialTheme.typography.bodySmall)
+                                }
+                            }
+
+                            Divider(modifier = Modifier.padding(vertical = 4.dp))
+
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Button(
+                                    onClick = { startConversation() },
+                                    enabled = conversationState == VoiceConversationManager.ConversationState.IDLE,
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFF4CAF50)
+                                    )
+                                ) {
+                                    Text("▶️ Start")
+                                }
+
+                                Button(
+                                    onClick = { stopConversation() },
+                                    enabled = conversationState != VoiceConversationManager.ConversationState.IDLE,
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.error
+                                    )
+                                ) {
+                                    Text("⏹️ Stop")
+                                }
+                            }
+
+                            Button(
+                                onClick = { clearConversation() },
+                                enabled = conversationHistory.isNotEmpty(),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("🗑️ Clear History (${conversationHistory.size})")
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
                     // Instructions
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -679,10 +833,52 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * Start conversation session
+     */
+    private fun startConversation() {
+        kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.Main) {
+            try {
+                android.util.Log.i("MainActivity", "🚀 Starting conversation session...")
+
+                // Initialize conversation manager
+                if (conversationManager.initialize()) {
+                    android.util.Log.i("MainActivity", "✅ ConversationManager initialized")
+
+                    // Start conversation
+                    conversationManager.startConversation()
+                    android.util.Log.i("MainActivity", "✅ Conversation started - Speak to begin!")
+                } else {
+                    android.util.Log.e("MainActivity", "❌ Failed to initialize ConversationManager")
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("MainActivity", "❌ Error starting conversation: ${e.message}", e)
+            }
+        }
+    }
+
+    /**
+     * Stop conversation session
+     */
+    private fun stopConversation() {
+        conversationManager.stopConversation()
+        android.util.Log.i("MainActivity", "⏹️ Conversation stopped")
+    }
+
+    /**
+     * Clear conversation history
+     */
+    private fun clearConversation() {
+        conversationManager.clearHistory()
+        android.util.Log.i("MainActivity", "🗑️ Conversation history cleared")
+    }
+
     override fun onDestroy() {
         super.onDestroy()
+        conversationManager.cleanup()
         vad.cleanup()
         interruptLogic.cleanup()
         audioRecorder.cleanup()
     }
 }
+
