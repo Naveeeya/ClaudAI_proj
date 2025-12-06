@@ -49,7 +49,7 @@ class VoiceConversationManager(
 ) {
     companion object {
         private const val TAG = "PitchSlap_ConvoManager"
-        private const val SILENCE_NUDGE_TIMEOUT_MS = 15000L // 15 seconds
+        private const val SILENCE_NUDGE_TIMEOUT_MS = 5000L // 5 seconds
     }
 
     /**
@@ -507,13 +507,24 @@ class VoiceConversationManager(
      * Handle silence timeout by nudging the user
      */
     private fun handleSilenceTimeout() {
-        Log.i(TAG, "⏳ User silent for 15s - Initiating AI nudge")
+        Log.i(TAG, "⏳ User silent for 5s - Initiating AI nudge")
 
         val nudges = listOf(
-            "Are you still there? Give it a try!",
-            "Don't be shy, I'm listening.",
-            "Ready when you are.",
-            "You can say anything to start practicing."
+            "I'm listening.",
+            "Go ahead.",
+            "What's on your mind?",
+            "I'm here.",
+            "Tell me more.",
+            "Did you have something else to say?",
+            "Keep going, you're doing great.",
+            "Any other thoughts?",
+            "I'm ready when you are.",
+            "Still there?",
+            "Don't be shy, say something!",
+            "I'm all ears.",
+            "Waiting for you.",
+            "You can say anything.",
+            "Let's keep the conversation going."
         )
         val nudge = nudges.random()
 
