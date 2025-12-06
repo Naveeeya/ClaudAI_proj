@@ -49,6 +49,7 @@ class VoiceConversationManager(
 ) {
     companion object {
         private const val TAG = "PitchSlap_ConvoManager"
+        private const val SILENCE_NUDGE_TIMEOUT_MS = 15000L // 15 seconds
     }
 
     /**
@@ -84,6 +85,7 @@ class VoiceConversationManager(
     private var conversationJob: Job? = null
     private var vadMonitorJob: Job? = null
     private var bargeInMonitorJob: Job? = null
+    private var silenceNudgeJob: Job? = null
 
     // State
     private var isActive = false
@@ -155,6 +157,7 @@ class VoiceConversationManager(
 
             isActive = true
             _conversationState.value = ConversationState.LISTENING
+            startSilenceTimer()
 
             // Start VAD
             vad.start()
@@ -202,6 +205,7 @@ class VoiceConversationManager(
      */
     private fun handleUserStartedSpeaking() {
         Log.i(TAG, "🗣️ User started speaking")
+        stopSilenceTimer()
 
         _conversationState.value = ConversationState.RECORDING
         turnStartTime = System.currentTimeMillis()
@@ -227,6 +231,7 @@ class VoiceConversationManager(
                 if (audioData.isEmpty()) {
                     Log.w(TAG, "⚠️ No audio data captured")
                     _conversationState.value = ConversationState.LISTENING
+                    startSilenceTimer()
                     return@launch
                 }
 
@@ -263,6 +268,7 @@ class VoiceConversationManager(
             if (transcript.isBlank()) {
                 Log.w(TAG, "⚠️ Empty transcript - returning to listening")
                 _conversationState.value = ConversationState.LISTENING
+                startSilenceTimer()
                 audioRecorder.clearBuffer()
                 audioFile.delete()
                 return
@@ -314,6 +320,7 @@ class VoiceConversationManager(
         } catch (e: CancellationException) {
             Log.i(TAG, "⏹️ Processing cancelled (likely barge-in)")
             _conversationState.value = ConversationState.LISTENING
+            startSilenceTimer()
             audioRecorder.clearBuffer()
             audioFile.delete()
         } catch (e: Exception) {
@@ -340,10 +347,12 @@ class VoiceConversationManager(
             onDone = {
                 Log.i(TAG, "✅ Feedback spoken - Returning to listening")
                 _conversationState.value = ConversationState.LISTENING
+                startSilenceTimer()
             },
             onError = { error ->
                 Log.e(TAG, "❌ TTS error: $error")
                 _conversationState.value = ConversationState.LISTENING
+                startSilenceTimer()
             }
         )
     }
@@ -372,9 +381,11 @@ class VoiceConversationManager(
 
             // Cancel any ongoing processing
             conversationJob?.cancel()
+            stopSilenceTimer()
 
             // Return to listening
             _conversationState.value = ConversationState.LISTENING
+            startSilenceTimer()
 
             Log.i(TAG, "✅ Barge-in handled - Ready for new input")
 
@@ -396,6 +407,7 @@ class VoiceConversationManager(
             Log.i(TAG, "🛑 Stopping conversation session...")
 
             isActive = false
+            stopSilenceTimer()
 
             // Cancel monitoring jobs
             vadMonitorJob?.cancel()
@@ -466,6 +478,62 @@ class VoiceConversationManager(
         } catch (e: Exception) {
             Log.e(TAG, "❌ Error during cleanup: ${e.message}", e)
         }
+    }
+
+    /**
+     * Start silence timer to nudge user if they don't speak
+     */
+    private fun startSilenceTimer() {
+        silenceNudgeJob?.cancel()
+        if (!isActive) return
+
+        silenceNudgeJob = scope.launch {
+            delay(SILENCE_NUDGE_TIMEOUT_MS)
+            if (_conversationState.value == ConversationState.LISTENING && isActive) {
+                handleSilenceTimeout()
+            }
+        }
+    }
+
+    /**
+     * Stop silence timer
+     */
+    private fun stopSilenceTimer() {
+        silenceNudgeJob?.cancel()
+        silenceNudgeJob = null
+    }
+
+    /**
+     * Handle silence timeout by nudging the user
+     */
+    private fun handleSilenceTimeout() {
+        Log.i(TAG, "⏳ User silent for 15s - Initiating AI nudge")
+
+        val nudges = listOf(
+            "Are you still there? Give it a try!",
+            "Don't be shy, I'm listening.",
+            "Ready when you are.",
+            "You can say anything to start practicing."
+        )
+        val nudge = nudges.random()
+
+        _conversationState.value = ConversationState.AI_SPEAKING
+        Log.i(TAG, "🤖 Speaking nudge: \"$nudge\"")
+
+        tts.speak(
+            text = nudge,
+            onStart = { Log.d(TAG, "🔊 Nudge started") },
+            onDone = {
+                Log.i(TAG, "✅ Nudge spoken - Returning to listening")
+                _conversationState.value = ConversationState.LISTENING
+                startSilenceTimer()
+            },
+            onError = { error ->
+                Log.e(TAG, "❌ Nudge error: $error")
+                _conversationState.value = ConversationState.LISTENING
+                startSilenceTimer()
+            }
+        )
     }
 
     /**
