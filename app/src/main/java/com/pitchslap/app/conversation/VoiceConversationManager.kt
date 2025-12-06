@@ -510,21 +510,21 @@ class VoiceConversationManager(
         Log.i(TAG, "⏳ User silent for 5s - Initiating AI nudge")
 
         val nudges = listOf(
-            "I'm listening.",
-            "Go ahead.",
-            "What's on your mind?",
-            "I'm here.",
-            "Tell me more.",
-            "Did you have something else to say?",
-            "Keep going, you're doing great.",
-            "Any other thoughts?",
-            "I'm ready when you are.",
-            "Still there?",
-            "Don't be shy, say something!",
-            "I'm all ears.",
-            "Waiting for you.",
-            "You can say anything.",
-            "Let's keep the conversation going."
+            "Are you going to speak or just stand there?",
+            "I haven't got all day, you know.",
+            "Cat got your tongue?",
+            "Well? I'm waiting.",
+            "Silence is boring. Say something.",
+            "Hello? Is anyone home?",
+            "You stopped. Why?",
+            "Don't leave me hanging like this.",
+            "Speak up, I'm getting old here.",
+            "Did you forget how to speak?",
+            "Tick tock...",
+            "Are we done here?",
+            "Say something interesting, please.",
+            "I'm getting impatient.",
+            "Do you need a script? Just talk."
         )
         val nudge = nudges.random()
 
