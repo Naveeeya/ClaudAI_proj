@@ -108,7 +108,7 @@ fun HomeScreen(
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Text(
-                        text = " Start Practice",
+                        text = "🎙️ Start Practice",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
@@ -122,7 +122,7 @@ fun HomeScreen(
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Text(
-                        text = " View History",
+                        text = "📜 View History",
                         style = MaterialTheme.typography.titleMedium
                     )
                 }

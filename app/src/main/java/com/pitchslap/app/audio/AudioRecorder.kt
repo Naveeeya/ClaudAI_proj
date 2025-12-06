@@ -21,6 +21,10 @@ import kotlin.collections.ArrayList
  * Uses a circular buffer to continuously capture audio during speech.
  * Can export recorded audio as WAV file for transcription.
  *
+ * NOTE: Creates separate AudioRecord instance from VAD. Android only allows
+ * one active AudioRecord per audio source at a time. Ensure VAD is stopped
+ * before starting recording, or implement shared AudioRecord architecture.
+ *
  * @see com.pitchslap.app.logic.VoiceActivityDetection for speech detection
  */
 class AudioRecorder {

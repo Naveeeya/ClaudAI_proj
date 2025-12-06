@@ -146,7 +146,7 @@ fun PracticeScreen(
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             Text(
-                                text = " Feedback",
+                                text = "💬 Feedback",
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold
                             )
@@ -174,7 +174,7 @@ fun PracticeScreen(
                             // Corrections
                             if (feedback.corrections.isNotEmpty()) {
                                 Text(
-                                    text = " Tips:",
+                                    text = "💡 Tips:",
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold
                                 )

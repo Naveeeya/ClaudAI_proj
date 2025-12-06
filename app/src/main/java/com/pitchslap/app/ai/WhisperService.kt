@@ -57,21 +57,35 @@ class WhisperService(private val context: Context) {
     /**
      * Transcribe audio file to text
      *
-     * **Current Implementation**: Uses live microphone input via SpeechRecognizer.
-     * This is a limitation of Android's SpeechRecognizer API which doesn't
-     * support transcribing from audio files directly.
+     * **CRITICAL LIMITATION**: Android SpeechRecognizer cannot transcribe from files.
+     * This method ignores the audioFile parameter and uses live microphone input instead.
      *
-     * **Future Enhancement**: Integrate Whisper GGML or Vosk for file-based
-     * transcription and fully offline operation.
+     * **Impact**: The recorded WAV file from AudioRecorder is not used. This breaks
+     * the intended pipeline where: AudioRecorder saves file → WhisperService transcribes it.
      *
-     * @param audioFile WAV audio file to transcribe (currently not used - limitation)
-     * @return Transcribed text
+     * **Workaround**: For MVP, we rely on live transcription timing to coincide with
+     * when user speaks. This is not ideal but functional for demonstration.
+     *
+     * **Required Fix for Production**: Integrate Whisper GGML, Vosk, or similar
+     * offline STT library that supports file-based transcription.
+     *
+     * @param audioFile WAV audio file to transcribe (IGNORED due to API limitation)
+     * @return Transcribed text from live microphone
      * @throws IllegalStateException if service not initialized
      * @throws Exception if transcription fails
      */
     suspend fun transcribe(audioFile: File): String {
-        Log.w(TAG, "⚠️ Note: Android SpeechRecognizer doesn't support file transcription")
-        Log.w(TAG, "⚠️ This will listen to live audio instead. Consider Whisper GGML for file support.")
+        Log.w(TAG, "⚠️ LIMITATION: audioFile parameter ignored - using live mic")
+        Log.w(TAG, "⚠️ Android SpeechRecognizer doesn't support file transcription")
+        Log.w(TAG, "⚠️ TODO: Integrate Whisper GGML or Vosk for true file-based STT")
+
+        // Delete the unused file to prevent storage buildup
+        try {
+            audioFile.delete()
+            Log.d(TAG, "🗑️ Deleted unused audio file: ${audioFile.name}")
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not delete temp file: ${e.message}")
+        }
 
         return transcribeLive()
     }
