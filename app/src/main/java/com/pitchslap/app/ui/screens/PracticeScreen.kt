@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -32,6 +33,12 @@ fun PracticeScreen(
     onStopPractice: () -> Unit,
     onBack: () -> Unit
 ) {
+    // Auto-start conversation when screen loads
+    LaunchedEffect(Unit) {
+        if (conversationState == VoiceConversationManager.ConversationState.IDLE) {
+            onStartPractice()
+        }
+    }
     Scaffold(
         topBar = {
             TopAppBar(

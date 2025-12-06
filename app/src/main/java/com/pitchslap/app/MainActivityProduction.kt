@@ -94,6 +94,13 @@ class MainActivityProduction : ComponentActivity() {
         val conversationHistory by conversationManager.conversationHistory.collectAsState()
         val isUserSpeaking by vad.isUserSpeaking.collectAsState()
 
+        // Auto-navigate to Practice screen on launch
+        LaunchedEffect(Unit) {
+            navController.navigate(Screen.Practice.route) {
+                popUpTo(Screen.Home.route) { inclusive = true }
+            }
+        }
+
         NavHost(
             navController = navController,
             startDestination = Screen.Home.route
