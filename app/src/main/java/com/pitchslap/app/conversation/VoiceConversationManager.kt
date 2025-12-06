@@ -436,9 +436,12 @@ class VoiceConversationManager(
 
         return ConversationStats(
             totalTurns = history.size,
-            averagePronunciationScore = history.map { it.aiFeedback.pronunciationScore }.average().toInt(),
-            averageGrammarScore = history.map { it.aiFeedback.grammarScore }.average().toInt(),
-            averageFluencyScore = history.map { it.aiFeedback.fluencyScore }.average().toInt(),
+            averagePronunciationScore = if (history.isNotEmpty()) history.map { it.aiFeedback.pronunciationScore }
+                .average().toInt() else 0,
+            averageGrammarScore = if (history.isNotEmpty()) history.map { it.aiFeedback.grammarScore }.average()
+                .toInt() else 0,
+            averageFluencyScore = if (history.isNotEmpty()) history.map { it.aiFeedback.fluencyScore }.average()
+                .toInt() else 0,
             totalDurationMs = history.sumOf { it.durationMs },
             currentState = _conversationState.value
         )

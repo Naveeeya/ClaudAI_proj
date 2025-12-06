@@ -28,6 +28,7 @@ import com.pitchslap.app.conversation.VoiceConversationManager
 import com.pitchslap.app.logic.InterruptLogic
 import com.pitchslap.app.logic.VoiceActivityDetection
 import com.pitchslap.app.ui.theme.PitchSlapTheme
+import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -734,7 +735,7 @@ class MainActivity : ComponentActivity() {
      * Automatically: starts AI speaking, waits, then simulates user speaking
      */
     private fun testBargeIn() {
-        kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.Main) {
+        lifecycleScope.launch {
             // Step 1: Start AI speaking
             interruptLogic.startAiSpeech()
 
@@ -797,7 +798,7 @@ class MainActivity : ComponentActivity() {
      * Automatically: starts recording, simulates speech, stops recording, saves file
      */
     private fun testVADRecording() {
-        kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.Main) {
+        lifecycleScope.launch {
             android.util.Log.i("MainActivity", "🧪 Starting VAD + Recording integration test")
 
             // Step 1: Start recording
@@ -837,7 +838,7 @@ class MainActivity : ComponentActivity() {
      * Start conversation session
      */
     private fun startConversation() {
-        kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.Main) {
+        lifecycleScope.launch {
             try {
                 android.util.Log.i("MainActivity", "🚀 Starting conversation session...")
 
