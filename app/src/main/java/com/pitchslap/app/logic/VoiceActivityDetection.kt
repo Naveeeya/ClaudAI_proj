@@ -27,8 +27,8 @@ class VoiceActivityDetection {
         private const val AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT
         private const val BUFFER_SIZE_MULTIPLIER = 2 // Safety margin
 
-        // VAD Thresholds - Use 2000 for real devices, lower for emulator
-        private const val RMS_THRESHOLD = 2000.0
+        // VAD Thresholds - Lowered for better sensitivity
+        private const val RMS_THRESHOLD = 500.0
         private const val SILENCE_TIMEOUT_MS = 500L
     }
 

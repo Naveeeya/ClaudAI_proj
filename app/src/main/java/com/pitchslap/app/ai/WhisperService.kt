@@ -70,11 +70,15 @@ class WhisperService(private val context: Context) {
      * offline STT library that supports file-based transcription.
      *
      * @param audioFile WAV audio file to transcribe (IGNORED due to API limitation)
+     * @param onPartialResult Callback for partial transcription updates
      * @return Transcribed text from live microphone
      * @throws IllegalStateException if service not initialized
      * @throws Exception if transcription fails
      */
-    suspend fun transcribe(audioFile: File): String {
+    suspend fun transcribe(
+        audioFile: File,
+        onPartialResult: (String) -> Unit = {}
+    ): String {
         Log.w(TAG, "⚠️ LIMITATION: audioFile parameter ignored - using live mic")
         Log.w(TAG, "⚠️ Android SpeechRecognizer doesn't support file transcription")
         Log.w(TAG, "⚠️ TODO: Integrate Whisper GGML or Vosk for true file-based STT")
@@ -87,7 +91,7 @@ class WhisperService(private val context: Context) {
             Log.w(TAG, "Could not delete temp file: ${e.message}")
         }
 
-        return transcribeLive()
+        return transcribeLive(onPartialResult = onPartialResult)
     }
 
     /**
@@ -98,13 +102,15 @@ class WhisperService(private val context: Context) {
      *
      * @param languageCode Language code (default: en-US)
      * @param maxResults Maximum number of results to return
+     * @param onPartialResult Callback for partial transcription updates
      * @return Transcribed text
      * @throws IllegalStateException if service not initialized
      * @throws Exception if transcription fails
      */
     suspend fun transcribeLive(
         languageCode: String = "en-US",
-        maxResults: Int = 1
+        maxResults: Int = 1,
+        onPartialResult: (String) -> Unit = {}
     ): String = suspendCancellableCoroutine { continuation ->
 
         val recognizer = speechRecognizer ?: run {
@@ -116,7 +122,7 @@ class WhisperService(private val context: Context) {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, languageCode)
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, maxResults)
-            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
+            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true) // Enable partial results
             putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, context.packageName)
         }
 
@@ -182,7 +188,11 @@ class WhisperService(private val context: Context) {
             }
 
             override fun onPartialResults(partialResults: Bundle?) {
-                // Partial results - could be used for real-time display
+                val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                if (!matches.isNullOrEmpty()) {
+                    val partial = matches[0]
+                    onPartialResult(partial)
+                }
             }
 
             override fun onEvent(eventType: Int, params: Bundle?) {

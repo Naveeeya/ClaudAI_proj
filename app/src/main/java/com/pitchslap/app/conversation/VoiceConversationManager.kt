@@ -90,6 +90,8 @@ class VoiceConversationManager(
     // State
     private var isActive = false
     private var turnStartTime = 0L
+    private var lastNudgeTime = 0L
+    private const val NUDGE_COOLDOWN_MS = 5000L
 
     /**
      * Initialize all components
@@ -260,7 +262,9 @@ class VoiceConversationManager(
             Log.i(TAG, "🎙️ Step 1: Transcribing speech...")
 
             // Transcribe audio to text
-            val transcript = whisperService.transcribe(audioFile)
+            val transcript = whisperService.transcribe(audioFile) { partial ->
+                checkForFillers(partial)
+            }
             _currentTranscript.value = transcript
 
             Log.i(TAG, "✅ Transcribed: \"$transcript\"")
@@ -329,6 +333,65 @@ class VoiceConversationManager(
             _errorMessage.value = e.message
             audioFile.delete()
         }
+    }
+
+    /**
+     * Check partial transcript for fillers and barge in if needed
+     */
+    private fun checkForFillers(partial: String) {
+        val fillers = listOf("um", "uh", "ah", "hm", "hmm", "mmm", "er", "aaa", "aaaa")
+        val words = partial.lowercase().trim().split(" ")
+        val lastWord = words.lastOrNull() ?: return
+
+        // Check if the last word is a filler or if the input is ONLY fillers
+        val isFiller = fillers.any { lastWord.startsWith(it) } ||
+                (words.all { w -> fillers.any { f -> w.startsWith(f) } } && words.size > 1)
+
+        if (isFiller) {
+            val currentTime = System.currentTimeMillis()
+            if (currentTime - lastNudgeTime > NUDGE_COOLDOWN_MS) {
+                Log.i(TAG, "🛑 Filler detected: '$lastWord' - Barging in!")
+                handleFillerBargeIn()
+                lastNudgeTime = currentTime
+            }
+        }
+    }
+
+    /**
+     * Handle filler barge-in
+     */
+    private fun handleFillerBargeIn() {
+        // Stop everything
+        whisperService.cancel()
+        audioRecorder.stopRecording()
+
+        // Strict nudges
+        val nudges = listOf(
+            "Stuck? Spit it out!",
+            "No 'umms', just speak.",
+            "Don't hesitate.",
+            "Come on, say it.",
+            "You're stalling. Focus.",
+            "Less 'ummm', more words."
+        )
+        val nudge = nudges.random()
+
+        _conversationState.value = ConversationState.AI_SPEAKING
+        Log.i(TAG, "🤖 Barging in on filler: \"$nudge\"")
+
+        tts.speak(
+            text = nudge,
+            onStart = { Log.d(TAG, "🔊 Filler nudge started") },
+            onDone = {
+                Log.i(TAG, "✅ Filler nudge spoken - Returning to listening")
+                _conversationState.value = ConversationState.LISTENING
+                startSilenceTimer()
+            },
+            onError = {
+                _conversationState.value = ConversationState.LISTENING
+                startSilenceTimer()
+            }
+        )
     }
 
     /**
