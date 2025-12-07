@@ -55,6 +55,11 @@ class TextToSpeechEngine(
     private var textToSpeech: TextToSpeech? = null
     private var currentUtteranceId: String? = null
 
+    // Callbacks for current utterance
+    private var currentOnStart: (() -> Unit)? = null
+    private var currentOnDone: (() -> Unit)? = null
+    private var currentOnError: ((String) -> Unit)? = null
+
     // Coroutine scope for barge-in monitoring
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var bargeInMonitorJob: Job? = null
@@ -123,6 +128,7 @@ class TextToSpeechEngine(
                 override fun onStart(utteranceId: String?) {
                     Log.d(TAG, "🗣️ TTS started: $utteranceId")
                     _isSpeaking.value = true
+                    currentOnStart?.invoke()
                 }
 
                 override fun onDone(utteranceId: String?) {
@@ -132,6 +138,9 @@ class TextToSpeechEngine(
 
                     // Notify InterruptLogic that AI stopped speaking
                     interruptLogic?.stopAiSpeech()
+
+                    currentOnDone?.invoke()
+                    clearCallbacks()
                 }
 
                 override fun onError(utteranceId: String?) {
@@ -139,6 +148,9 @@ class TextToSpeechEngine(
                     _isSpeaking.value = false
                     currentUtteranceId = null
                     interruptLogic?.stopAiSpeech()
+
+                    currentOnError?.invoke("TTS Error")
+                    clearCallbacks()
                 }
 
                 override fun onStop(utteranceId: String?, interrupted: Boolean) {
@@ -146,9 +158,17 @@ class TextToSpeechEngine(
                     _isSpeaking.value = false
                     currentUtteranceId = null
                     interruptLogic?.stopAiSpeech()
+                    // onStop doesn't trigger onDone/onError callbacks by design
+                    clearCallbacks()
                 }
             })
         }
+    }
+
+    private fun clearCallbacks() {
+        currentOnStart = null
+        currentOnDone = null
+        currentOnError = null
     }
 
     /**
@@ -193,6 +213,11 @@ class TextToSpeechEngine(
             // Generate unique utterance ID
             currentUtteranceId = "utterance_${System.currentTimeMillis()}"
 
+            // Store callbacks
+            currentOnStart = onStart
+            currentOnDone = onDone
+            currentOnError = onError
+
             // Configure TTS parameters
             textToSpeech?.apply {
                 setSpeechRate(speechRate)
@@ -215,17 +240,19 @@ class TextToSpeechEngine(
                     // Start monitoring for barge-ins
                     startBargeInMonitoring()
 
-                    onStart()
+                    // onStart will be called by listener
                 } else {
                     val error = "TTS speak failed with result: $result"
                     Log.e(TAG, "❌ $error")
                     onError(error)
+                    clearCallbacks()
                 }
             }
         } catch (e: Exception) {
             val error = "TTS speak exception: ${e.message}"
             Log.e(TAG, "❌ $error", e)
             onError(error)
+            clearCallbacks()
         }
     }
 
